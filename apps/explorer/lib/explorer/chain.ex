@@ -18,6 +18,7 @@ defmodule Explorer.Chain do
       select: 3,
       subquery: 1,
       union: 2,
+      update: 2,
       where: 2,
       where: 3
     ]
@@ -83,7 +84,7 @@ defmodule Explorer.Chain do
   alias Explorer.Counters.{AddressesCounter, AddressesWithBalanceCounter}
   alias Explorer.Market.MarketHistoryCache
   alias Explorer.{PagingOptions, Repo}
-  alias Explorer.SmartContract.Reader
+  alias Explorer.SmartContract.{Helper, Reader}
   alias Explorer.Staking.ContractState
 
   alias Dataloader.Ecto, as: DataloaderEcto
@@ -297,7 +298,7 @@ defmodule Explorer.Chain do
     query
     |> InternalTransaction.where_is_different_from_parent_transaction()
     |> InternalTransaction.where_block_number_is_not_null()
-    |> page_internal_transaction(paging_options)
+    |> page_internal_transaction(paging_options, %{index_int_tx_desc_order: true})
     |> limit(^paging_options.page_size)
     |> order_by(
       [it],
@@ -766,20 +767,39 @@ defmodule Explorer.Chain do
   """
   @spec block_reward(Block.block_number()) :: Wei.t()
   def block_reward(block_number) do
-    query =
-      from(
-        block in Block,
-        left_join: transaction in assoc(block, :transactions),
-        inner_join: emission_reward in EmissionReward,
-        on: fragment("? <@ ?", block.number, emission_reward.block_range),
-        where: block.number == ^block_number,
-        group_by: emission_reward.reward,
-        select: %Wei{
-          value: coalesce(sum(transaction.gas_used * transaction.gas_price), 0) + emission_reward.reward
-        }
-      )
+    block_hash =
+      Block
+      |> where([block], block.number == ^block_number and block.consensus)
+      |> select([block], block.hash)
+      |> Repo.one!()
 
-    Repo.one!(query)
+    case Repo.one!(
+           from(reward in Reward,
+             where: reward.block_hash == ^block_hash,
+             select: %Wei{
+               value: coalesce(sum(reward.reward), 0)
+             }
+           )
+         ) do
+      %Wei{
+        value: %Decimal{coef: 0}
+      } ->
+        Repo.one!(
+          from(block in Block,
+            left_join: transaction in assoc(block, :transactions),
+            inner_join: emission_reward in EmissionReward,
+            on: fragment("? <@ ?", block.number, emission_reward.block_range),
+            where: block.number == ^block_number and block.consensus,
+            group_by: [emission_reward.reward, block.hash],
+            select: %Wei{
+              value: coalesce(sum(transaction.gas_used * transaction.gas_price), 0) + emission_reward.reward
+            }
+          )
+        )
+
+      other_value ->
+        other_value
+    end
   end
 
   @doc """
@@ -1095,7 +1115,7 @@ defmodule Explorer.Chain do
       {:actual, Decimal.new(4)}
 
   """
-  @spec fee(%Transaction{gas_used: nil}, :ether | :gwei | :wei) :: {:maximum, Decimal.t()}
+  @spec fee(Transaction.t(), :ether | :gwei | :wei) :: {:maximum, Decimal.t()} | {:actual, Decimal.t()}
   def fee(%Transaction{gas: gas, gas_price: gas_price, gas_used: nil}, unit) do
     fee =
       gas_price
@@ -1105,7 +1125,6 @@ defmodule Explorer.Chain do
     {:maximum, fee}
   end
 
-  @spec fee(%Transaction{gas_used: Decimal.t()}, :ether | :gwei | :wei) :: {:actual, Decimal.t()}
   def fee(%Transaction{gas_price: gas_price, gas_used: gas_used}, unit) do
     fee =
       gas_price
@@ -1285,8 +1304,7 @@ defmodule Explorer.Chain do
       [_ | _] = words ->
         term_final =
           words
-          |> Enum.map(fn [word] -> word <> ":*" end)
-          |> Enum.join(" & ")
+          |> Enum.map_join(" & ", fn [word] -> word <> ":*" end)
 
         {:some, term_final}
 
@@ -3368,31 +3386,6 @@ defmodule Explorer.Chain do
   end
 
   @doc """
-  Returns the list of empty blocks from the DB which have not marked with `t:Explorer.Chain.Block.is_empty/0`.
-  This query used for initializtion of Indexer.EmptyBlocksSanitizer
-  """
-  def unprocessed_empty_blocks_query_list(limit) do
-    query =
-      from(block in Block,
-        as: :block,
-        where: block.consensus == true,
-        where: is_nil(block.is_empty),
-        where:
-          not exists(
-            from(transaction in Transaction,
-              where: transaction.block_number == parent_as(:block).number
-            )
-          ),
-        select: {block.number, block.hash},
-        order_by: [desc: block.number],
-        limit: ^limit
-      )
-
-    query
-    |> Repo.all(timeout: :infinity)
-  end
-
-  @doc """
   The `string` must start with `0x`, then is converted to an integer and then to `t:Explorer.Chain.Hash.Address.t/0`.
 
       iex> Explorer.Chain.string_to_address_hash("0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed")
@@ -3965,6 +3958,10 @@ defmodule Explorer.Chain do
   def create_smart_contract(attrs \\ %{}, external_libraries \\ [], secondary_sources \\ []) do
     new_contract = %SmartContract{}
 
+    attrs =
+      attrs
+      |> Helper.add_contract_code_md5()
+
     smart_contract_changeset =
       new_contract
       |> SmartContract.changeset(attrs)
@@ -3990,10 +3987,6 @@ defmodule Explorer.Chain do
       Multi.new()
       |> Multi.run(:set_address_verified, fn repo, _ -> set_address_verified(repo, address_hash) end)
       |> Multi.run(:clear_primary_address_names, fn repo, _ -> clear_primary_address_names(repo, address_hash) end)
-      |> Multi.run(:insert_address_name, fn repo, _ ->
-        name = Changeset.get_field(smart_contract_changeset, :name)
-        create_address_name(repo, name, address_hash)
-      end)
       |> Multi.insert(:smart_contract, smart_contract_changeset)
 
     insert_contract_query_with_additional_sources =
@@ -4006,6 +3999,8 @@ defmodule Explorer.Chain do
     insert_result =
       insert_contract_query_with_additional_sources
       |> Repo.transaction()
+
+    create_address_name(Repo, Changeset.get_field(smart_contract_changeset, :name), address_hash)
 
     case insert_result do
       {:ok, %{smart_contract: smart_contract}} ->
@@ -4152,47 +4147,43 @@ defmodule Explorer.Chain do
   Finds metadata for verification of a contract from verified twins: contracts with the same bytecode
   which were verified previously, returns a single t:SmartContract.t/0
   """
-  def get_address_verified_twin_contract(address_hash) do
-    case Repo.get(Address, address_hash) do
-      nil ->
+  def get_address_verified_twin_contract(hash) when is_binary(hash) do
+    case string_to_address_hash(hash) do
+      {:ok, address_hash} -> get_address_verified_twin_contract(address_hash)
+      _ -> %{:verified_contract => nil, :additional_sources => nil}
+    end
+  end
+
+  def get_address_verified_twin_contract(%Explorer.Chain.Hash{} = address_hash) do
+    with target_address <- Repo.get(Address, address_hash),
+         false <- is_nil(target_address),
+         %{contract_code: %Chain.Data{bytes: contract_code_bytes}} <- target_address do
+      target_address_hash = target_address.hash
+
+      contract_code_md5 = Helper.contract_code_md5(contract_code_bytes)
+
+      verified_contract_twin_query =
+        from(
+          smart_contract in SmartContract,
+          where: smart_contract.contract_code_md5 == ^contract_code_md5,
+          where: smart_contract.address_hash != ^target_address_hash,
+          select: smart_contract,
+          limit: 1
+        )
+
+      verified_contract_twin =
+        verified_contract_twin_query
+        |> Repo.one(timeout: 10_000)
+
+      verified_contract_twin_additional_sources = get_contract_additional_sources(verified_contract_twin)
+
+      %{
+        :verified_contract => verified_contract_twin,
+        :additional_sources => verified_contract_twin_additional_sources
+      }
+    else
+      _ ->
         %{:verified_contract => nil, :additional_sources => nil}
-
-      target_address ->
-        target_address_hash = target_address.hash
-        contract_code = target_address.contract_code
-
-        case contract_code do
-          %Chain.Data{bytes: contract_code_bytes} ->
-            contract_code_md5 =
-              Base.encode16(:crypto.hash(:md5, "\\x" <> Base.encode16(contract_code_bytes, case: :lower)),
-                case: :lower
-              )
-
-            verified_contract_twin_query =
-              from(
-                address in Address,
-                inner_join: smart_contract in SmartContract,
-                on: address.hash == smart_contract.address_hash,
-                where: fragment("md5(contract_code::text)") == ^contract_code_md5,
-                where: address.hash != ^target_address_hash,
-                select: smart_contract,
-                limit: 1
-              )
-
-            verified_contract_twin =
-              verified_contract_twin_query
-              |> Repo.one(timeout: 10_000)
-
-            verified_contract_twin_additional_sources = get_contract_additional_sources(verified_contract_twin)
-
-            %{
-              :verified_contract => verified_contract_twin,
-              :additional_sources => verified_contract_twin_additional_sources
-            }
-
-          _ ->
-            %{:verified_contract => nil, :additional_sources => nil}
-        end
     end
   end
 
@@ -4473,23 +4464,47 @@ defmodule Explorer.Chain do
     where(query, [coin_balance], coin_balance.block_number < ^block_number)
   end
 
-  defp page_internal_transaction(query, %PagingOptions{key: nil}), do: query
+  defp page_internal_transaction(_, _, _ \\ %{index_int_tx_desc_order: false})
 
-  defp page_internal_transaction(query, %PagingOptions{key: {block_number, transaction_index, index}}) do
-    where(
-      query,
-      [internal_transaction],
-      internal_transaction.block_number < ^block_number or
-        (internal_transaction.block_number == ^block_number and
-           internal_transaction.transaction_index < ^transaction_index) or
-        (internal_transaction.block_number == ^block_number and
-           internal_transaction.transaction_index == ^transaction_index and internal_transaction.index < ^index)
-    )
+  defp page_internal_transaction(query, %PagingOptions{key: nil}, _), do: query
+
+  defp page_internal_transaction(query, %PagingOptions{key: {block_number, transaction_index, index}}, %{
+         index_int_tx_desc_order: desc
+       }) do
+    hardcoded_where_for_page_int_tx(query, block_number, transaction_index, index, desc)
   end
 
-  defp page_internal_transaction(query, %PagingOptions{key: {index}}) do
-    where(query, [internal_transaction], internal_transaction.index > ^index)
+  defp page_internal_transaction(query, %PagingOptions{key: {index}}, %{index_int_tx_desc_order: desc}) do
+    if desc do
+      where(query, [internal_transaction], internal_transaction.index < ^index)
+    else
+      where(query, [internal_transaction], internal_transaction.index > ^index)
+    end
   end
+
+  defp hardcoded_where_for_page_int_tx(query, block_number, transaction_index, index, false),
+    do:
+      where(
+        query,
+        [internal_transaction],
+        internal_transaction.block_number < ^block_number or
+          (internal_transaction.block_number == ^block_number and
+             internal_transaction.transaction_index < ^transaction_index) or
+          (internal_transaction.block_number == ^block_number and
+             internal_transaction.transaction_index == ^transaction_index and internal_transaction.index > ^index)
+      )
+
+  defp hardcoded_where_for_page_int_tx(query, block_number, transaction_index, index, true),
+    do:
+      where(
+        query,
+        [internal_transaction],
+        internal_transaction.block_number < ^block_number or
+          (internal_transaction.block_number == ^block_number and
+             internal_transaction.transaction_index < ^transaction_index) or
+          (internal_transaction.block_number == ^block_number and
+             internal_transaction.transaction_index == ^transaction_index and internal_transaction.index < ^index)
+      )
 
   defp page_logs(query, %PagingOptions{key: nil}), do: query
 
@@ -6672,30 +6687,6 @@ defmodule Explorer.Chain do
 
   defp boolean_to_check_result(false), do: :not_found
 
-  def extract_db_name(db_url) do
-    if db_url == nil do
-      ""
-    else
-      db_url
-      |> String.split("/")
-      |> Enum.take(-1)
-      |> Enum.at(0)
-    end
-  end
-
-  def extract_db_host(db_url) do
-    if db_url == nil do
-      ""
-    else
-      db_url
-      |> String.split("@")
-      |> Enum.take(-1)
-      |> Enum.at(0)
-      |> String.split(":")
-      |> Enum.at(0)
-    end
-  end
-
   @doc """
   Fetches the first trace from the Parity trace URL.
   """
@@ -6750,6 +6741,7 @@ defmodule Explorer.Chain do
 
   def gnosis_safe_contract?(abi) when is_nil(abi), do: false
 
+  @spec get_implementation_address_hash(Hash.Address.t(), list()) :: String.t() | nil
   def get_implementation_address_hash(proxy_address_hash, abi)
       when not is_nil(proxy_address_hash) and not is_nil(abi) do
     implementation_method_abi =
@@ -6764,16 +6756,19 @@ defmodule Explorer.Chain do
         master_copy_pattern?(method)
       end)
 
-    cond do
-      implementation_method_abi ->
-        get_implementation_address_hash_basic(proxy_address_hash, abi)
+    implementation_address =
+      cond do
+        implementation_method_abi ->
+          get_implementation_address_hash_basic(proxy_address_hash, abi)
 
-      master_copy_method_abi ->
-        get_implementation_address_hash_from_master_copy_pattern(proxy_address_hash)
+        master_copy_method_abi ->
+          get_implementation_address_hash_from_master_copy_pattern(proxy_address_hash)
 
-      true ->
-        get_implementation_address_hash_eip_1967(proxy_address_hash)
-    end
+        true ->
+          get_implementation_address_hash_eip_1967(proxy_address_hash)
+      end
+
+    save_implementation_name(implementation_address, proxy_address_hash)
   end
 
   def get_implementation_address_hash(proxy_address_hash, abi) when is_nil(proxy_address_hash) or is_nil(abi) do
@@ -6831,7 +6826,7 @@ defmodule Explorer.Chain do
          ) do
       {:ok, empty_address}
       when empty_address in ["0x", "0x0", "0x0000000000000000000000000000000000000000000000000000000000000000"] ->
-        {:ok, "0x"}
+        fetch_openzeppelin_proxy_implementation(proxy_address_hash, json_rpc_named_arguments)
 
       {:ok, beacon_contract_address} ->
         case beacon_contract_address
@@ -6843,6 +6838,29 @@ defmodule Explorer.Chain do
           _ ->
             {:ok, beacon_contract_address}
         end
+
+      {:error, _} ->
+        {:ok, "0x"}
+    end
+  end
+
+  # changes requested by https://github.com/blockscout/blockscout/issues/5292
+  defp fetch_openzeppelin_proxy_implementation(proxy_address_hash, json_rpc_named_arguments) do
+    # This is the keccak-256 hash of "org.zeppelinos.proxy.implementation"
+    storage_slot_logic_contract_address = "0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3"
+
+    case Contract.eth_get_storage_at_request(
+           proxy_address_hash,
+           storage_slot_logic_contract_address,
+           nil,
+           json_rpc_named_arguments
+         ) do
+      {:ok, empty_address}
+      when empty_address in ["0x", "0x0", "0x0000000000000000000000000000000000000000000000000000000000000000"] ->
+        {:ok, "0x"}
+
+      {:ok, logic_contract_address} ->
+        {:ok, logic_contract_address}
 
       {:error, _} ->
         {:ok, "0x"}
@@ -6904,6 +6922,33 @@ defmodule Explorer.Chain do
     end)
   end
 
+  defp save_implementation_name(empty_address_hash_string, _)
+       when empty_address_hash_string in [
+              "0x",
+              "0x0",
+              "0x0000000000000000000000000000000000000000000000000000000000000000",
+              @burn_address_hash_str
+            ],
+       do: empty_address_hash_string
+
+  defp save_implementation_name(implementation_address_hash_string, proxy_address_hash)
+       when is_binary(implementation_address_hash_string) do
+    with {:ok, address_hash} <- string_to_address_hash(implementation_address_hash_string),
+         %SmartContract{name: name} <- address_hash_to_smart_contract(address_hash) do
+      SmartContract
+      |> where([sc], sc.address_hash == ^proxy_address_hash)
+      |> update(set: [implementation_name: ^name])
+      |> Repo.update_all([])
+
+      implementation_address_hash_string
+    else
+      _ ->
+        implementation_address_hash_string
+    end
+  end
+
+  defp save_implementation_name(other, _), do: other
+
   defp abi_decode_address_output(nil), do: nil
 
   defp abi_decode_address_output("0x"), do: @burn_address_hash_str
@@ -6953,24 +6998,8 @@ defmodule Explorer.Chain do
 
   def get_implementation_abi_from_proxy(proxy_address_hash, abi)
       when not is_nil(proxy_address_hash) and not is_nil(abi) do
-    implementation_method_abi =
-      abi
-      |> Enum.find(fn method ->
-        Map.get(method, "name") == "implementation" ||
-          master_copy_pattern?(method)
-      end)
-
-    if implementation_method_abi do
-      implementation_address_hash_string = get_implementation_address_hash(proxy_address_hash, abi)
-
-      if implementation_address_hash_string do
-        get_implementation_abi(implementation_address_hash_string)
-      else
-        []
-      end
-    else
-      []
-    end
+    implementation_address_hash_string = get_implementation_address_hash(proxy_address_hash, abi)
+    get_implementation_abi(implementation_address_hash_string)
   end
 
   def get_implementation_abi_from_proxy(proxy_address_hash, abi) when is_nil(proxy_address_hash) or is_nil(abi) do
