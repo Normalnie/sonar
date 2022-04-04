@@ -63,6 +63,7 @@ else
 end
 
 config :indexer, Indexer.Fetcher.InternalTransaction.Supervisor, disabled?: false
+# ^ Flip back on asap
 
 config :indexer, Indexer.Supervisor, enabled: System.get_env("DISABLE_INDEXER") != "true"
 

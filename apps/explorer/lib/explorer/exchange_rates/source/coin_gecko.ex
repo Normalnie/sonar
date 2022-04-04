@@ -1,3 +1,4 @@
+
 defmodule Explorer.ExchangeRates.Source.CoinGecko do
   @moduledoc """
   Adapter for fetching exchange rates from https://coingecko.com
@@ -7,6 +8,27 @@ defmodule Explorer.ExchangeRates.Source.CoinGecko do
   alias Explorer.ExchangeRates.{Source, Token}
 
   import Source, only: [to_decimal: 1]
+
+
+
+
+
+ alias BlockScoutWeb.{ChainView, Controller}
+  alias Explorer.{Chain, PagingOptions, Repo}
+  alias Explorer.Chain.{Address, Block, Transaction}
+  alias Explorer.Chain.Supply.{RSK, TokenBridge}
+  alias Explorer.Chain.Transaction.History.TransactionStats
+  alias Explorer.Counters.AverageBlockTime
+  alias Explorer.ExchangeRates.Token
+  alias Explorer.Market
+  alias Phoenix.View
+
+
+
+
+
+
+
 
   @behaviour Source
 
@@ -36,7 +58,11 @@ defmodule Explorer.ExchangeRates.Source.CoinGecko do
         name: json_data["name"],
         symbol: String.upcase(json_data["symbol"]),
         usd_value: current_price,
-        volume_24h_usd: to_decimal(total_volume_data_usd)
+        volume_24h_usd: to_decimal(total_volume_data_usd),
+        tvl: get_tvl(),
+        locked_bch: get_locked_bch(),
+        burned_bch: get_burned_bch(),
+        burned_usd: get_burned_usd(current_price)
       }
     ]
   end
@@ -183,6 +209,83 @@ defmodule Explorer.ExchangeRates.Source.CoinGecko do
         resp
     end
   end
+
+  defp get_locked_bch() do
+    url = "http://94.237.53.24/api?module=account&action=balance&address=0xC172F00ac38c8b2004793F94B33483aA704045BB"
+    response = HTTPoison.get!(url)
+    response = Poison.decode!(response.body)
+    output = response["result"]
+    output = String.to_integer(output)
+    output = Decimal.div(output, 1000000000000000000)
+    output = Decimal.sub(21000000, output)
+    output = Number.Delimit.number_to_delimited(output)
+    output
+
+
+end
+
+
+  defp get_burned_usd(usd_value) do
+
+url = "http://94.237.53.24/api?module=account&action=balance&address=0x0000000000000000000000626c61636b686f6c65"
+
+    response = HTTPoison.get!(url)
+    rep = Poison.decode!(response.body)
+    tap = rep["result"]
+    tap = String.to_integer(tap)
+    nap = Decimal.div(tap, 1000000000000000000)
+
+    
+   
+   nap = Decimal.mult(usd_value, nap)
+   nap = Decimal.round(nap,2)
+   nap = Number.Delimit.number_to_delimited(nap)
+ #   eap = Number.Delimit.number_to_delimited(nap)
+#    eap
+
+   nap
+end
+
+  defp get_burned_bch() do
+    url = "http://94.237.53.24/api?module=account&action=balance&address=0x0000000000000000000000626c61636b686f6c65"
+    
+    response = HTTPoison.get!(url)
+    rep = Poison.decode!(response.body)
+    tap = rep["result"]
+    tap = String.to_integer(tap)
+    nap = Decimal.div(tap, 1000000000000000000)
+    #nap = Decimal.round(nap,2)
+    nap = Number.Delimit.number_to_delimited(nap)
+nap
+#    tap = Float.round(tap, 2)
+   # {test, _} = tap
+  #  test = Float.round(test, 2)
+ 
+ #   sap = to_string(test)
+    
+#   tap = tap * 1**-18
+# sap
+#   cap =  inspect(test)   
+# {zap, _} = tap
+   # tap
+ #cap
+end
+
+  defp get_tvl() do
+ 
+   
+   url = "https://api.llama.fi/chains"
+    response = HTTPoison.get!(url)
+    rep = Poison.decode!(response.body)
+    dap = Enum.find(rep, fn map ->map["name"] == "smartBCH" end)
+    zap = dap["tvl"]
+    zap = Number.Delimit.number_to_delimited(zap)
+    #zap = Float.round(zap, 2)
+    output = zap
+ #   output = Number.Currency.number_to_currency(output)
+    output
+    
+end
 
   @spec config(atom()) :: term
   defp config(key) do

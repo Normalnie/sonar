@@ -164,42 +164,6 @@
               <%= BlockScoutWeb.Cldr.Number.to_string!(@address_count, format: "#,###") %>
             </span>
           </div>
-          <div class="dashboard-banner-network-stats-item dashboard-banner-network-stats-item-5">
-            <span class="dashboard-banner-network-stats-label">
-              <%= gettext "Total Value Locked" %>
-            </span>
-            <span class="dashboard-banner-network-stats-value" data-selector="none">
-             <%= gettext "$" %>
-             <%= @exchange_rate.tvl %>
-            </span>
-          </div>
-          <div class="dashboard-banner-network-stats-item dashboard-banner-network-stats-item-6">
-            <span class="dashboard-banner-network-stats-label">
-              <%= gettext "Locked BCH" %>
-            </span>
-            <span class="dashboard-banner-network-stats-value" data-selector="none">
-              <%= @exchange_rate.locked_bch %>
-            </span>
-          </div>
-          
-           <div class="dashboard-banner-network-stats-item dashboard-banner-network-stats-item-7">
-            <span class="dashboard-banner-network-stats-label">
-              <%= gettext "Burned Fees (BCH)" %>
-            </span>
-            <span class="dashboard-banner-network-stats-value" data-selector="none">
-              <%= @exchange_rate.burned_bch %>
-            </span>
-          </div>
-          <div class="dashboard-banner-network-stats-item dashboard-banner-network-stats-item-8">
-            <span class="dashboard-banner-network-stats-label">
-              <%= gettext "Burned Fees (USD)" %>
-            </span>
-            <span class="dashboard-banner-network-stats-value" data-selector="none">
-              $
-	      <%= @exchange_rate.burned_usd %>
-            </span>
-          </div>
-          
         </div>
       </div>
     </div>

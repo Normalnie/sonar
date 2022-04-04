@@ -10,8 +10,8 @@ defmodule BlockScoutWeb.LayoutView do
   @issue_url "https://github.com/blockscout/blockscout/issues/new"
   @default_other_networks [
     %{
-      title: "POA",
-      url: "https://blockscout.com/poa/core"
+      title: "SmartBCH‎",
+      url: "http://94.237.53.24/"
     },
     %{
       title: "Sokol",
