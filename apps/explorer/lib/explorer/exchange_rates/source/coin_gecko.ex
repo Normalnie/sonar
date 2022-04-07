@@ -227,65 +227,45 @@ end
 
   defp get_burned_usd(usd_value) do
 
-url = "http://94.237.53.24/api?module=account&action=balance&address=0x0000000000000000000000626c61636b686f6c65"
+    url = "http://94.237.53.24/api?module=account&action=balance&address=0x0000000000000000000000626c61636b686f6c65"
 
     response = HTTPoison.get!(url)
-    rep = Poison.decode!(response.body)
-    tap = rep["result"]
-    tap = String.to_integer(tap)
-    nap = Decimal.div(tap, 1000000000000000000)
+    response = Poison.decode!(response.body)
+    sBCHArr = response["result"]
+    lockedAmount = String.to_integer(sBCHArr)
+    lockedAmount = Decimal.div(lockedAmount, 1000000000000000000)
 
     
    
-   nap = Decimal.mult(usd_value, nap)
-   nap = Decimal.round(nap,2)
-   nap = Number.Delimit.number_to_delimited(nap)
- #   eap = Number.Delimit.number_to_delimited(nap)
-#    eap
-
-   nap
-end
+   burned_usd = Decimal.mult(usd_value, lockedAmount)
+   burned_usd = Decimal.round(burned_usd,2)
+   output = Number.Delimit.number_to_delimited(burned_usd)
+   output
+  end
 
   defp get_burned_bch() do
     url = "http://94.237.53.24/api?module=account&action=balance&address=0x0000000000000000000000626c61636b686f6c65"
     
     response = HTTPoison.get!(url)
-    rep = Poison.decode!(response.body)
-    tap = rep["result"]
-    tap = String.to_integer(tap)
-    nap = Decimal.div(tap, 1000000000000000000)
-    #nap = Decimal.round(nap,2)
-    nap = Number.Delimit.number_to_delimited(nap)
-nap
-#    tap = Float.round(tap, 2)
-   # {test, _} = tap
-  #  test = Float.round(test, 2)
- 
- #   sap = to_string(test)
-    
-#   tap = tap * 1**-18
-# sap
-#   cap =  inspect(test)   
-# {zap, _} = tap
-   # tap
- #cap
-end
+    response = Poison.decode!(response.body)
+    sBCHArr = response["result"]
+    sBCHArr = String.to_integer(sBCHArr)
+    output = Decimal.div(sBCHArr, 1000000000000000000)
+    output = Number.Delimit.number_to_delimited(output)
+  output
+  end
 
   defp get_tvl() do
  
    
-   url = "https://api.llama.fi/chains"
+    url = "https://api.llama.fi/chains"
     response = HTTPoison.get!(url)
-    rep = Poison.decode!(response.body)
-    dap = Enum.find(rep, fn map ->map["name"] == "smartBCH" end)
-    zap = dap["tvl"]
-    zap = Number.Delimit.number_to_delimited(zap)
-    #zap = Float.round(zap, 2)
-    output = zap
- #   output = Number.Currency.number_to_currency(output)
+    response = Poison.decode!(response.body)
+    sBCHArr = Enum.find(response, fn map ->map["name"] == "smartBCH" end)
+    output =  Number.Delimit.number_to_delimited(sBCHArr["tvl"])
     output
     
-end
+  end
 
   @spec config(atom()) :: term
   defp config(key) do
