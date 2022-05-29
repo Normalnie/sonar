@@ -342,10 +342,17 @@ defmodule Explorer.Token.MetadataRetriever do
 
   defp handle_large_string(nil), do: nil
   defp handle_large_string(string), do: handle_large_string(string, byte_size(string))
-  defp handle_large_string(string, size) when size > 255, do: binary_part(string, 0, 255)
+  defp handle_large_string(string, size) when size > 255, do: shorten_to_valid_utf(binary_part(string, 0, 255))
   defp handle_large_string(string, _size), do: string
 
   defp remove_null_bytes(string) do
     String.replace(string, "\0", "")
+  end
+
+  def shorten_to_valid_utf(string) do
+    case String.valid?(string) do
+      true  -> string
+      false -> shorten_to_valid_utf(binary_part(string, 0, byte_size(string) - 1))
+    end
   end
 end
