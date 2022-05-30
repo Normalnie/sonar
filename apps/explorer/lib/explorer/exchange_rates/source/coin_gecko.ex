@@ -3,6 +3,8 @@ defmodule Explorer.ExchangeRates.Source.CoinGecko do
   @moduledoc """
   Adapter for fetching exchange rates from https://coingecko.com
   """
+  require Logger
+  import Ecto.Query
 
   alias Explorer.Chain
   alias Explorer.ExchangeRates.{Source, Token}
@@ -211,60 +213,45 @@ defmodule Explorer.ExchangeRates.Source.CoinGecko do
   end
 
   defp get_locked_bch() do
-    url = "http://94.237.53.24/api?module=account&action=balance&address=0xC172F00ac38c8b2004793F94B33483aA704045BB"
-    response = HTTPoison.get!(url)
-    response = Poison.decode!(response.body)
-    output = response["result"]
-    output = String.to_integer(output)
-    output = Decimal.div(output, 1000000000000000000)
-    output = Decimal.sub(21000000, output)
-    output = Number.Delimit.number_to_delimited(output)
-    output
+    {:ok, hash} = Chain.string_to_address_hash("0x8c4F85ec71C966e45A6F4291f5271f8114a7Ba15")
+    address = Address
+      |> where(hash: ^hash)
+      |> Repo.one
 
-
+    balance = Decimal.div(address.fetched_coin_balance.value, 1000000000000000000)
+    Decimal.sub(21000000, balance)
 end
 
 
   defp get_burned_usd(usd_value) do
+    {:ok, hash} = Chain.string_to_address_hash("0x0000000000000000000000626c61636b686f6c65")
+    address = Address
+      |> where(hash: ^hash)
+      |> Repo.one
 
-    url = "http://94.237.53.24/api?module=account&action=balance&address=0x0000000000000000000000626c61636b686f6c65"
+    balance = Decimal.div(address.fetched_coin_balance.value, 1000000000000000000)
 
-    response = HTTPoison.get!(url)
-    response = Poison.decode!(response.body)
-    sBCHArr = response["result"]
-    lockedAmount = String.to_integer(sBCHArr)
-    lockedAmount = Decimal.div(lockedAmount, 1000000000000000000)
-
-    
-   
-   burned_usd = Decimal.mult(usd_value, lockedAmount)
-   burned_usd = Decimal.round(burned_usd,2)
-   output = Number.Delimit.number_to_delimited(burned_usd)
-   output
+    burned_usd = Decimal.mult(usd_value, balance)
+    Decimal.round(burned_usd,2)
   end
 
   defp get_burned_bch() do
-    url = "http://94.237.53.24/api?module=account&action=balance&address=0x0000000000000000000000626c61636b686f6c65"
-    
-    response = HTTPoison.get!(url)
-    response = Poison.decode!(response.body)
-    sBCHArr = response["result"]
-    sBCHArr = String.to_integer(sBCHArr)
-    output = Decimal.div(sBCHArr, 1000000000000000000)
-    output = Number.Delimit.number_to_delimited(output)
-  output
+    {:ok, hash} = Chain.string_to_address_hash("0x0000000000000000000000626c61636b686f6c65")
+
+    address = Address
+      |> where(hash: ^hash)
+      |> Repo.one
+
+    balance = Decimal.div(address.fetched_coin_balance.value, 1000000000000000000)
+    balance
   end
 
   defp get_tvl() do
- 
-   
     url = "https://api.llama.fi/chains"
     response = HTTPoison.get!(url)
     response = Poison.decode!(response.body)
-    sBCHArr = Enum.find(response, fn map ->map["name"] == "smartBCH" end)
-    output =  Number.Delimit.number_to_delimited(sBCHArr["tvl"])
-    output
-    
+    sBCHArr = Enum.find(response, fn map -> map["name"] == "smartBCH" end)
+    sBCHArr["tvl"]
   end
 
   @spec config(atom()) :: term

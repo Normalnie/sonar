@@ -169,7 +169,7 @@
               <%= gettext "Total Value Locked" %>
             </span>
             <span class="dashboard-banner-network-stats-value" data-selector="none">
-             <%= "$#{@exchange_rate.tvl}" %>
+             <%= "$#{Number.Delimit.number_to_delimited(@exchange_rate.tvl)}" %>
             </span>
           </div>
           <div class="dashboard-banner-network-stats-item dashboard-banner-network-stats-item-6">
@@ -177,7 +177,7 @@
               <%= gettext "Locked BCH" %>
             </span>
             <span class="dashboard-banner-network-stats-value" data-selector="none">
-              <%= @exchange_rate.locked_bch %>
+              <%= Number.Delimit.number_to_delimited(@exchange_rate.locked_bch) %>
             </span>
           </div>
           
@@ -186,7 +186,7 @@
               <%= gettext "Burned Fees (BCH)" %>
             </span>
             <span class="dashboard-banner-network-stats-value" data-selector="none">
-              <%= @exchange_rate.burned_bch %>
+              <%= Number.Delimit.number_to_delimited(@exchange_rate.burned_bch) %>
             </span>
           </div>
           <div class="dashboard-banner-network-stats-item dashboard-banner-network-stats-item-8">
@@ -194,7 +194,7 @@
               <%= gettext "Burned Fees (USD)" %>
             </span>
             <span class="dashboard-banner-network-stats-value" data-selector="none">
-	      <%= "$#{@exchange_rate.burned_usd}" %>
+	            <%= "$#{Number.Delimit.number_to_delimited(@exchange_rate.burned_usd)}" %>
             </span>
           </div>
           
