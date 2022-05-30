@@ -247,11 +247,12 @@ end
   end
 
   defp get_tvl() do
-    url = "https://api.llama.fi/chains"
-    response = HTTPoison.get!(url)
-    response = Poison.decode!(response.body)
-    sBCHArr = Enum.find(response, fn map -> map["name"] == "smartBCH" end)
-    sBCHArr["tvl"]
+    url = "https://api.llama.fi/simpleChainDataset/smartbch?pool2=true&staking=true&borrowed=true&doublecounted=true"
+    response = HTTPoison.get!(url, [], [timeout: 60000, recv_timeout: 60000, follow_redirect: true])
+    strings = String.split(response.body, "\n")
+    string = Enum.at(strings, 1)
+    tvls = String.split(string, ",")
+    to_decimal(List.last(tvls, "0"))
   end
 
   @spec config(atom()) :: term
