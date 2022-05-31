@@ -149,6 +149,23 @@
           </li>
         <% end %>
         <li class="nav-item dropdown">
+          <a href="#" role="button" id="navbarAPIsDropdown" class="nav-link topnav-nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <span class="nav-link-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+                <path fill="#D2DAE9" fill-rule="evenodd" d="M15 3H5a1 1 0 0 1-2 0H1a1 1 0 0 1 0-2h2a1 1 0 0 1 2 0h10a1 1 0 0 1 0 2z"></path>
+                <path fill="#BDC4D2" fill-rule="evenodd" d="M15 9h-2a1 1 0 0 1-2 0H1a1 1 0 0 1 0-2h10a1 1 0 0 1 2 0h2a1 1 0 0 1 0 2z"></path>
+                <path fill="#A3A9B5" fill-rule="evenodd" d="M15 15H5a1 1 0 0 1-2 0H1a1 1 0 0 1 0-2h2a1 1 0 0 1 2 0h10a1 1 0 0 1 0 2z"></path>
+              </svg>
+            </span>
+            APIs
+          </a>
+          <div class="dropdown-menu" aria-labeledby="navbarTransactionsDropdown">
+            <a class="dropdown-item " href="/graphiql">GraphQL</a>
+            <a class="dropdown-item " href="/api-docs">RPC</a>
+            <a class="dropdown-item " href="/eth-rpc-api-docs">smartBCH RPC</a>
+          </div>
+        </li>
+        <li class="nav-item dropdown">
           <a class="nav-link topnav-nav-link active-icon <%= if dropdown_nets() != [], do: "dropdown-toggle js-show-network-selector" %>" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             <span class="nav-link-icon">
               <%= render BlockScoutWeb.IconsView, "_active_icon.html" %>
