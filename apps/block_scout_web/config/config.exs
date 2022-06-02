@@ -117,7 +117,8 @@ config :block_scout_web, BlockScoutWeb.SocialMedia,
   twitter: "PoaNetwork",
   telegram: "poa_network",
   facebook: "PoaNetwork",
-  instagram: "PoaNetwork"
+  instagram: "PoaNetwork",
+  discord: "mPJ9zkq"
 
 # Configures History
 price_chart_config =
