@@ -48,7 +48,7 @@
           <% end %>
         </ul>
       </div>
-      <% main_nets = main_nets(other_networks()) %>
+      <% main_nets = dropdown_head_main_nets() %>
 
       <%= unless Enum.empty?(main_nets) do %>
         <div class="col-xs-12 col-md-4 col-lg-<%= col_size %> footer-list">
