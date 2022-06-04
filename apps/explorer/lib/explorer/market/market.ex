@@ -9,6 +9,7 @@ defmodule Explorer.Market do
   alias Explorer.ExchangeRates.Token
   alias Explorer.Market.{MarketHistory, MarketHistoryCache}
   alias Explorer.{ExchangeRates, KnownTokens, Repo}
+  alias Explorer.Chain.Cache.TokenExchangeRate
 
   @doc """
   Get most recent exchange rate for the given symbol.
@@ -52,7 +53,7 @@ defmodule Explorer.Market do
     Repo.insert_all(MarketHistory, records_without_zeroes, on_conflict: :nothing, conflict_target: [:date])
   end
 
-  def add_price(%{symbol: symbol} = token) do
+  def add_price(%{symbol: symbol, contract_address_hash: contract_address_hash} = token) do
     known_address = get_known_address(symbol)
 
     matches_known_address = known_address && known_address == token.contract_address_hash
@@ -60,7 +61,7 @@ defmodule Explorer.Market do
     usd_value =
       cond do
         matches_known_address ->
-          fetch_token_usd_value(matches_known_address, symbol)
+          TokenExchangeRate.fetch_by_symbol(to_string(contract_address_hash), symbol)
 
         bridged_token = mainnet_bridged_token?(token) ->
           TokenBridge.get_current_price_for_bridged_token(

@@ -5,13 +5,19 @@ defmodule Explorer.KnownTokens.Source do
 
   alias Explorer.Chain.Hash
   alias Explorer.ExchangeRates.Source
+  alias Explorer.KnownTokens.Source.Database
 
   @doc """
   Fetches known tokens
   """
+  # @spec fetch_known_tokens() :: {:ok, [Hash.Address.t()]} | {:error, any}
+  # def fetch_known_tokens(source \\ known_tokens_source()) do
+  #   Source.http_request(source.source_url())
+  # end
+
   @spec fetch_known_tokens() :: {:ok, [Hash.Address.t()]} | {:error, any}
   def fetch_known_tokens(source \\ known_tokens_source()) do
-    Source.http_request(source.source_url())
+    Database.fetch_known_tokens()
   end
 
   @doc """
@@ -21,7 +27,7 @@ defmodule Explorer.KnownTokens.Source do
 
   @spec known_tokens_source() :: module()
   defp known_tokens_source do
-    config(:source) || Explorer.KnownTokens.Source.MyEtherWallet
+    config(:source) || Explorer.KnownTokens.Source.Database
   end
 
   @spec config(atom()) :: term
