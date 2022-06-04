@@ -61,7 +61,7 @@ defmodule Explorer.Market do
     usd_value =
       cond do
         matches_known_address ->
-          TokenExchangeRate.fetch_by_symbol(to_string(contract_address_hash), symbol)
+          TokenExchangeRate.fetch(contract_address_hash, to_string(contract_address_hash))
 
         bridged_token = mainnet_bridged_token?(token) ->
           TokenBridge.get_current_price_for_bridged_token(
