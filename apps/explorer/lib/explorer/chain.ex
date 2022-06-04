@@ -1490,7 +1490,7 @@ defmodule Explorer.Chain do
         basic_query =
           from(
             tokens in subquery(tokens_query),
-            union: ^contracts_query,
+            union: ^contracts_query
           ) |> union(^name_query)
 
         query =
@@ -5319,7 +5319,7 @@ defmodule Explorer.Chain do
             |> Decimal.mult(home_token_total_supply)
             |> Decimal.div(token_decimals_divider)
 
-          token_price = TokenExchangeRate.fetch_token_exchange_rate_by_address(token_hash_str)
+          token_price = TokenExchangeRate.fetch(token_hash, token_hash_str)
 
           token_cap_usd =
             if token_price do
