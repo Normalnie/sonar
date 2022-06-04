@@ -3,7 +3,7 @@ defmodule Explorer.Counters.AddressTokenUsdSum do
   Caches Address tokens USD value.
   """
   use GenServer
-
+require Logger
   alias Explorer.Chain
   alias Explorer.Counters.Helper
 
@@ -64,9 +64,11 @@ defmodule Explorer.Counters.AddressTokenUsdSum do
   end
 
   defp update_cache(address_hash_string, token_balances) do
-    put_into_cache("hash_#{address_hash_string}_#{@last_update_key}", Helper.current_time())
     new_data = Chain.address_tokens_usd_sum(token_balances)
-    put_into_cache("hash_#{address_hash_string}", new_data)
+    if Decimal.gt?(new_data, "0") do
+      put_into_cache("hash_#{address_hash_string}_#{@last_update_key}", Helper.current_time())
+      put_into_cache("hash_#{address_hash_string}", new_data)
+    end
   end
 
   defp fetch_from_cache(key) do
