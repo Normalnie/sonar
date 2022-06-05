@@ -214,36 +214,38 @@ defmodule Explorer.ExchangeRates.Source.CoinGecko do
 
   defp get_locked_bch() do
     {:ok, hash} = Chain.string_to_address_hash("0x8c4F85ec71C966e45A6F4291f5271f8114a7Ba15")
-    address = Address
-      |> where(hash: ^hash)
-      |> Repo.one
 
-    balance = Decimal.div(address.fetched_coin_balance.value, 1000000000000000000)
-    Decimal.sub(21000000, balance)
+    case Address |> where(hash: ^hash) |> Repo.one do
+      nil -> Decimal.new("0")
+      address ->
+        balance = Decimal.div(address.fetched_coin_balance.value, 1000000000000000000)
+        Decimal.sub(21000000, balance)
+    end
 end
 
 
   defp get_burned_usd(usd_value) do
     {:ok, hash} = Chain.string_to_address_hash("0x0000000000000000000000626c61636b686f6c65")
-    address = Address
-      |> where(hash: ^hash)
-      |> Repo.one
 
-    balance = Decimal.div(address.fetched_coin_balance.value, 1000000000000000000)
+    case Address |> where(hash: ^hash) |> Repo.one do
+      nil -> Decimal.new("0")
+      address ->
+        balance = Decimal.div(address.fetched_coin_balance.value, 1000000000000000000)
 
-    burned_usd = Decimal.mult(usd_value, balance)
-    Decimal.round(burned_usd,2)
+        burned_usd = Decimal.mult(usd_value, balance)
+        Decimal.round(burned_usd,2)
+    end
   end
 
   defp get_burned_bch() do
     {:ok, hash} = Chain.string_to_address_hash("0x0000000000000000000000626c61636b686f6c65")
 
-    address = Address
-      |> where(hash: ^hash)
-      |> Repo.one
-
-    balance = Decimal.div(address.fetched_coin_balance.value, 1000000000000000000)
-    balance
+    case Address |> where(hash: ^hash) |> Repo.one do
+      nil -> Decimal.new("0")
+      address ->
+        balance = Decimal.div(address.fetched_coin_balance.value, 1000000000000000000)
+        balance
+    end
   end
 
   defp get_tvl() do
