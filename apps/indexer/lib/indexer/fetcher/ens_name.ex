@@ -41,7 +41,7 @@ defmodule Indexer.Fetcher.ENSName do
 
   @impl BufferedTask
   def init(initial_acc, reducer, _) do
-    Logger.info("Start refreshing LNS names for addresses in DB.")
+    Logger.info("Start refreshing ENS names for addresses in DB.")
     {:ok, acc} =
       Chain.stream_address_hashes(initial_acc, fn data, acc ->
         reducer.(data, acc)

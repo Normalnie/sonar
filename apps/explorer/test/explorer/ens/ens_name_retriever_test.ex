@@ -24,12 +24,26 @@ defmodule Indexer.Fetcher.EnsNameTest do
 
       assert Base.encode16(ENS.NameRetriever.namehash("b69d54a4e31f24afdd9eb1b53f8319ac83c646c9.addr.reverse"), case: :lower) == "5af16006ad8cc8ec19f624c12ea9e30511c080ae88071401a57c0e00be6471ca"
 
-      Logger.warn(Base.encode16(ExKeccak.hash_256("resolver(bytes32)"), case: :lower))
-      Logger.warn(Base.encode16(ExKeccak.hash_256("name(bytes32)"), case: :lower))
+      # Logger.warn(Base.encode16(ExKeccak.hash_256("resolver(bytes32)"), case: :lower))
+      # Logger.warn(Base.encode16(ExKeccak.hash_256("name(bytes32)"), case: :lower))
+      # Logger.warn(Base.encode16(ExKeccak.hash_256("addr(bytes32)"), case: :lower))
     end
 
-    test "fetches ENS name from address", %{json_rpc_named_arguments: json_rpc_named_arguments} do
+    test "ENS disabled test", %{json_rpc_named_arguments: json_rpc_named_arguments} do
+      configuration = Application.get_env(:explorer, Explorer.ENS.NameRetriever)
+      Application.put_env(:explorer, Explorer.ENS.NameRetriever, [enabled: false, registry_address: "0xcfb86556760d03942ebf1ba88a9870e67d77b627"])
+
+      assert {:error, "ENS support was not enabled"} ==
+        ENS.NameRetriever.fetch_name_of("0xb69d54a4e31f24AFdD9eB1b53f8319aC83C646c9")
+
+      Application.put_env(:explorer, Explorer.ExchangeRates, configuration)
+    end
+
+    test "fetches ENS name from address using registry", %{json_rpc_named_arguments: json_rpc_named_arguments} do
       if json_rpc_named_arguments[:transport] == EthereumJSONRPC.Mox do
+        configuration = Application.get_env(:explorer, Explorer.ENS.NameRetriever)
+        Application.put_env(:explorer, Explorer.ENS.NameRetriever, [enabled: true, registry_address: "0xcfb86556760d03942ebf1ba88a9870e67d77b627", resolver_address: nil])
+
         EthereumJSONRPC.Mox
         |> expect(:json_rpc, fn [
                                   %{
@@ -88,6 +102,49 @@ defmodule Indexer.Fetcher.EnsNameTest do
 
         assert {:ok, "lns.bch"} ==
           ENS.NameRetriever.fetch_name_of("0xb69d54a4e31f24AFdD9eB1b53f8319aC83C646c9")
+
+        Application.put_env(:explorer, Explorer.ExchangeRates, configuration)
+      end
+    end
+
+    test "fetches ENS name from address using resolver", %{json_rpc_named_arguments: json_rpc_named_arguments} do
+      if json_rpc_named_arguments[:transport] == EthereumJSONRPC.Mox do
+        configuration = Application.get_env(:explorer, Explorer.ENS.NameRetriever)
+        Application.put_env(:explorer, Explorer.ENS.NameRetriever, [enabled: true, registry_address: "0xcfb86556760d03942ebf1ba88a9870e67d77b627", resolver_address: "0x1ba19b976fefc1c9c684f2b821e494a380f45a0f"])
+
+        EthereumJSONRPC.Mox
+        |> expect(:json_rpc, fn [
+                                  %{
+                                    id: 0,
+                                    jsonrpc: "2.0",
+                                    method: "eth_call",
+                                    params: [
+                                      %{
+                                        data:
+                                          "0x691f34315af16006ad8cc8ec19f624c12ea9e30511c080ae88071401a57c0e00be6471ca",
+                                        to: "0x1ba19b976fefc1c9c684f2b821e494a380f45a0f"
+                                      },
+                                      "latest"
+                                    ]
+                                  }
+                                ],
+                                _options ->
+          {:ok,
+            [
+              %{
+                id: 0,
+                jsonrpc: "2.0",
+                result:
+                  "0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000076c6e732e62636800000000000000000000000000000000000000000000000000"
+              }
+            ]
+          }
+        end)
+
+        assert {:ok, "lns.bch"} ==
+          ENS.NameRetriever.fetch_name_of("0xb69d54a4e31f24AFdD9eB1b53f8319aC83C646c9")
+
+        Application.put_env(:explorer, Explorer.ExchangeRates, configuration)
       end
     end
   end

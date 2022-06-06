@@ -62,13 +62,13 @@
           <div style="display: flex; align-items: center; gap: 15px">
             <%= if address_name do %>
               <div>
-                <img onerror="this.onerror=null; this.remove();" style="width: 64px" src="https://metadata.bch.domains/smartbch/avatar/<%= primary_name(@address) %>">
+                <img onerror="this.onerror=null; this.remove();" style="width: 64px" src="<%= ens_avatar_url(@address) %>">
               </div>
-            <%= end %>
+            <% end %>
             <div>
               <%= if address_name do %>
                 <h3 style="width: 100%" class="address-detail-name-title <%= if BlockScoutWeb.AddressView.contract?(@address) do %>contract-address<% end %>" data-test="address_detail_name"><%= primary_name(@address) %></h3>
-              <%= end %>
+              <% end %>
               <h3 style="width: 100%" class="address-detail-hash-title <%= if BlockScoutWeb.AddressView.contract?(@address) do %>contract-address<% end %>" data-test="address_detail_hash"><%= @address %></h3>
             </div>
           </div>

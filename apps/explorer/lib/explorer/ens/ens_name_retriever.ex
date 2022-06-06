@@ -75,43 +75,55 @@ defmodule Explorer.ENS.NameRetriever do
       "stateMutability" => "view",
       "type" => "function"
     },
+    %{
+        "constant" => true,
+        "inputs" => [
+            %{
+                "name" => "node",
+                "type" => "bytes32"
+            }
+        ],
+        "name" => "addr",
+        "outputs" => [
+            %{
+                "name" => "ret",
+                "type" => "address"
+            }
+        ],
+        "payable" => false,
+        "type" => "function"
+    },
   ]
   # 691f3431 = keccak256(name(bytes32))
   @name_function "691f3431"
-
-  @registry_address "0xcfb86556760d03942ebf1ba88a9870e67d77b627"
-
-  def fetch_resolver_of(address) do
-    reverse_address = String.downcase(String.slice(address, 2..-1)) <> ".addr.reverse"
-    reverse_address_hash = namehash(reverse_address)
-    reverse_address_hash_str = Base.encode16(reverse_address_hash, case: :lower)
-
-    contract_functions = %{@resolver_function => ["0x"<>reverse_address_hash_str]}
-
-    @registry_address
-    |> query_contract(contract_functions, @registry_abi)
-    |> handle_resolver_result()
-  end
+  # 3b3b57de = keccak256(addr(bytes32))
+  @addr_function "3b3b57de"
 
   def fetch_name_of(address) do
-    reverse_address = String.downcase(String.slice(address, 2..-1)) <> ".addr.reverse"
-    reverse_address_hash = namehash(reverse_address)
+    case enabled? do
+      false -> {:error, "ENS support was not enabled"}
+      true ->
+        reverse_address = String.downcase(String.slice(address, 2..-1)) <> ".addr.reverse"
+        reverse_address_hash = namehash(reverse_address)
 
-    registrar_functions = %{@resolver_function => [reverse_address_hash]}
+        resolver_result = case resolver_address do
+          nil ->
+            registry_address
+            |> query_contract(%{@resolver_function => [reverse_address_hash]}, @registry_abi)
+            |> handle_resolver_result()
+            # resolver_result = {:ok, "0x1ba19b976fefc1c9c684f2b821e494a380f45a0f"}
+          address -> {:ok, address}
+        end
 
-    resolver_result = @registry_address
-    |> query_contract(registrar_functions, @registry_abi)
-    |> handle_resolver_result()
-    # resolver_result = {:ok, "0x1ba19b976fefc1c9c684f2b821e494a380f45a0f"}
+        case resolver_result do
+          {:error, error} -> {:error, error}
+          {:ok, resolver_address} ->
+            resolver_functions = %{@name_function => [reverse_address_hash]}
 
-    case resolver_result do
-      {:error, error} -> {:error, error}
-      {:ok, resolver_address} ->
-        resolver_functions = %{@name_function => [reverse_address_hash]}
-
-        name = resolver_address
-        |> query_contract(resolver_functions, @resolver_abi)
-        |> handle_name_result()
+            name = resolver_address
+            |> query_contract(resolver_functions, @resolver_abi)
+            |> handle_name_result()
+        end
     end
   end
 
@@ -160,5 +172,23 @@ defmodule Explorer.ENS.NameRetriever do
       true  -> string
       false -> shorten_to_valid_utf(binary_part(string, 0, byte_size(string) - 1))
     end
+  end
+
+  defp config(key) do
+    :explorer
+    |> Application.get_env(__MODULE__)
+    |> Keyword.get(key)
+  end
+
+  defp enabled? do
+    config(:enabled)
+  end
+
+  defp registry_address do
+    config(:registry_address)
+  end
+
+  defp resolver_address do
+    config(:resolver_address)
   end
 end
