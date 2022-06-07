@@ -99,6 +99,32 @@ defmodule Explorer.ENS.NameRetriever do
   # 3b3b57de = keccak256(addr(bytes32))
   @addr_function "3b3b57de"
 
+  def fetch_address_of(name) do
+    case enabled? do
+      false -> {:error, "ENS support was not enabled"}
+      true ->
+        namehash = namehash(name)
+
+        resolver_result = case resolver_address do
+          nil ->
+            registry_address
+            |> query_contract(%{@resolver_function => [namehash]}, @registry_abi)
+            |> handle_resolver_result(name)
+          address -> {:ok, address}
+        end
+
+        case resolver_result do
+          {:error, error} -> {:error, error}
+          {:ok, resolver_address} ->
+            resolver_functions = %{@addr_function => [namehash]}
+
+            resolver_address
+            |> query_contract(resolver_functions, @resolver_abi)
+            |> handle_address_result(name)
+        end
+    end
+  end
+
   def fetch_name_of(address) do
     case enabled? do
       false -> {:error, "ENS support was not enabled"}
@@ -110,8 +136,7 @@ defmodule Explorer.ENS.NameRetriever do
           nil ->
             registry_address
             |> query_contract(%{@resolver_function => [reverse_address_hash]}, @registry_abi)
-            |> handle_resolver_result()
-            # resolver_result = {:ok, "0x1ba19b976fefc1c9c684f2b821e494a380f45a0f"}
+            |> handle_resolver_result(reverse_address)
           address -> {:ok, address}
         end
 
@@ -120,21 +145,32 @@ defmodule Explorer.ENS.NameRetriever do
           {:ok, resolver_address} ->
             resolver_functions = %{@name_function => [reverse_address_hash]}
 
-            name = resolver_address
+            resolver_address
             |> query_contract(resolver_functions, @resolver_abi)
             |> handle_name_result()
         end
     end
   end
 
-  def handle_resolver_result(%{@resolver_function => {:ok, [resolver_address_str]}}) do
-    case resolver_address_str do
-      "0x0000000000000000000000000000000000000000" -> {:error, "ENS resolver not set for reverse registrar"}
-      _ -> {:ok, resolver_address_str}
+  def handle_resolver_result(%{@resolver_function => {:ok, [address_str]}}, name) do
+    case address_str do
+      "0x0000000000000000000000000000000000000000" -> {:error, "Failed to look up ENS resolver address for #{name}"}
+      _ -> {:ok, address_str}
     end
   end
 
-  def handle_resolver_result(%{@resolver_function => {:error, error}}) do
+  def handle_resolver_result(%{@resolver_function => {:error, error}}, _) do
+    {:error, error}
+  end
+
+  def handle_address_result(%{@addr_function => {:ok, [address_str]}}, name) do
+    case address_str do
+      "0x0000000000000000000000000000000000000000" -> {:error, "Failed to look up ENS address for #{name}"}
+      _ -> {:ok, address_str}
+    end
+  end
+
+  def handle_address_result(%{@addr_function => {:error, error}}, _) do
     {:error, error}
   end
 

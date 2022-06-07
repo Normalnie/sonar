@@ -147,5 +147,46 @@ defmodule Indexer.Fetcher.EnsNameTest do
         Application.put_env(:explorer, Explorer.ExchangeRates, configuration)
       end
     end
+
+    test "fetches ENS address from name using resolver", %{json_rpc_named_arguments: json_rpc_named_arguments} do
+      if json_rpc_named_arguments[:transport] == EthereumJSONRPC.Mox do
+        configuration = Application.get_env(:explorer, Explorer.ENS.NameRetriever)
+        Application.put_env(:explorer, Explorer.ENS.NameRetriever, [enabled: true, registry_address: "0xcfb86556760d03942ebf1ba88a9870e67d77b627", resolver_address: "0x1ba19b976fefc1c9c684f2b821e494a380f45a0f"])
+
+        EthereumJSONRPC.Mox
+        |> expect(:json_rpc, fn [
+                                  %{
+                                    id: 0,
+                                    jsonrpc: "2.0",
+                                    method: "eth_call",
+                                    params: [
+                                      %{
+                                        data:
+                                          "0x3b3b57defa9165a468560cc43085d93d395dd45dee66d76084df5578343b709cf135e074",
+                                        to: "0x1ba19b976fefc1c9c684f2b821e494a380f45a0f"
+                                      },
+                                      "latest"
+                                    ]
+                                  }
+                                ],
+                                _options ->
+          {:ok,
+            [
+              %{
+                id: 0,
+                jsonrpc: "2.0",
+                result:
+                  "0x000000000000000000000000b69d54a4e31f24afdd9eb1b53f8319ac83c646c9"
+              }
+            ]
+          }
+        end)
+
+        assert {:ok, "0xb69d54a4e31f24afdd9eb1b53f8319ac83c646c9"} ==
+          ENS.NameRetriever.fetch_address_of("lns.bch")
+
+        Application.put_env(:explorer, Explorer.ExchangeRates, configuration)
+      end
+    end
   end
 end
