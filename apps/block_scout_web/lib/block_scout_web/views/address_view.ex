@@ -464,6 +464,6 @@ defmodule BlockScoutWeb.AddressView do
   end
 
   def ens_avatar_url(address) do
-    "#{Application.get_env(:block_scout_web, :ens_metadata_server)}/smartbch/avatar/#{primary_name(address)}"
+    "#{Application.get_env(:block_scout_web, :ens_metadata_server)}/avatar/#{primary_name(address)}"
   end
 end
