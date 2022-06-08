@@ -5,8 +5,6 @@ defmodule Explorer.ENS.NameRetriever do
 
   require Logger
 
-  alias Explorer.{Chain, Repo}
-  alias Explorer.Chain.{Hash, Token}
   alias Explorer.SmartContract.Reader
 
   @regex ~r/^((.*)\.)?([^.]+)$/
@@ -100,14 +98,14 @@ defmodule Explorer.ENS.NameRetriever do
   @addr_function "3b3b57de"
 
   def fetch_address_of(name) do
-    case enabled? do
+    case enabled?() do
       false -> {:error, "ENS support was not enabled"}
       true ->
         namehash = namehash(name)
 
-        resolver_result = case resolver_address do
+        resolver_result = case resolver_address() do
           nil ->
-            registry_address
+            registry_address()
             |> query_contract(%{@resolver_function => [namehash]}, @registry_abi)
             |> handle_resolver_result(name)
           address -> {:ok, address}
@@ -126,15 +124,15 @@ defmodule Explorer.ENS.NameRetriever do
   end
 
   def fetch_name_of(address) do
-    case enabled? do
+    case enabled?() do
       false -> {:error, "ENS support was not enabled"}
       true ->
         reverse_address = String.downcase(String.slice(address, 2..-1)) <> ".addr.reverse"
         reverse_address_hash = namehash(reverse_address)
 
-        resolver_result = case resolver_address do
+        resolver_result = case resolver_address() do
           nil ->
-            registry_address
+            registry_address()
             |> query_contract(%{@resolver_function => [reverse_address_hash]}, @registry_abi)
             |> handle_resolver_result(reverse_address)
           address -> {:ok, address}
@@ -198,10 +196,6 @@ defmodule Explorer.ENS.NameRetriever do
   defp handle_large_string(string), do: handle_large_string(string, byte_size(string))
   defp handle_large_string(string, size) when size > 255, do: shorten_to_valid_utf(binary_part(string, 0, 255))
   defp handle_large_string(string, _size), do: string
-
-  defp remove_null_bytes(string) do
-    String.replace(string, "\0", "")
-  end
 
   def shorten_to_valid_utf(string) do
     case String.valid?(string) do
