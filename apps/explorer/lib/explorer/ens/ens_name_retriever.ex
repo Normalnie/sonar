@@ -101,24 +101,26 @@ defmodule Explorer.ENS.NameRetriever do
     case enabled?() do
       false -> {:error, "ENS support was not enabled"}
       true ->
-        namehash = namehash(name)
+        case namehash(name) do
+          {:error, message} -> {:error, message}
+          namehash ->
+            resolver_result = case resolver_address() do
+              nil ->
+                registry_address()
+                |> query_contract(%{@resolver_function => [namehash]}, @registry_abi)
+                |> handle_resolver_result(name)
+              address -> {:ok, address}
+            end
 
-        resolver_result = case resolver_address() do
-          nil ->
-            registry_address()
-            |> query_contract(%{@resolver_function => [namehash]}, @registry_abi)
-            |> handle_resolver_result(name)
-          address -> {:ok, address}
-        end
+            case resolver_result do
+              {:error, error} -> {:error, error}
+              {:ok, resolver_address} ->
+                resolver_functions = %{@addr_function => [namehash]}
 
-        case resolver_result do
-          {:error, error} -> {:error, error}
-          {:ok, resolver_address} ->
-            resolver_functions = %{@addr_function => [namehash]}
-
-            resolver_address
-            |> query_contract(resolver_functions, @resolver_abi)
-            |> handle_address_result(name)
+                resolver_address
+                |> query_contract(resolver_functions, @resolver_abi)
+                |> handle_address_result(name)
+            end
         end
     end
   end

@@ -4661,6 +4661,19 @@ defmodule Explorer.Chain do
   end
 
   @doc """
+  Gets a lists of all ens names for ens name sanitizer task
+  """
+  def ens_name_list do
+    query = from(name in Address.Name,
+      where: fragment("?->>'type' = 'ens'", name.metadata),
+      select: name)
+
+    query
+    |> Repo.all(timeout: :infinity)
+  end
+
+
+  @doc """
   Streams a lists token contract addresses that haven't been cataloged.
   """
   @spec stream_uncataloged_token_contract_address_hashes(

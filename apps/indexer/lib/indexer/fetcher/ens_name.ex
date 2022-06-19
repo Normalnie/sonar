@@ -57,6 +57,7 @@ defmodule Indexer.Fetcher.ENSName do
         params = %{
           address_hash: address_hash,
           name: name,
+          metadata: %{type: "ens"}
         }
 
         {:ok, _result} = Chain.upsert_address_name(params)
@@ -68,7 +69,7 @@ defmodule Indexer.Fetcher.ENSName do
             "failed to fetch ENS name for #{inspect({to_string(address_hash)})}: ",
             inspect(error)
           ],
-          fetcher: :token_instances
+          fetcher: :address_names
         )
 
         :ok

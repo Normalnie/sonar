@@ -13,7 +13,8 @@ defmodule Indexer.Supervisor do
     PendingOpsCleaner,
     PendingTransactionsSanitizer,
     SetAmbBridgedMetadataForTokens,
-    SetOmniBridgedMetadataForTokens
+    SetOmniBridgedMetadataForTokens,
+    ENSNameSanitizer
   }
 
   alias Indexer.Block.{Catchup, Realtime}
@@ -132,6 +133,7 @@ defmodule Indexer.Supervisor do
       {EmptyBlocksSanitizer.Supervisor, [[json_rpc_named_arguments: json_rpc_named_arguments]]},
       {TokenTotalSupplyOnDemand.Supervisor, [json_rpc_named_arguments]},
       {PendingTransactionsSanitizer, [[json_rpc_named_arguments: json_rpc_named_arguments]]},
+      {ENSNameSanitizer, [[json_rpc_named_arguments: json_rpc_named_arguments]]},
 
       # Temporary workers
       {UncatalogedTokenTransfers.Supervisor, [[]]},
