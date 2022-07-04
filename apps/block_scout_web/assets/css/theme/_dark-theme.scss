@@ -35,10 +35,10 @@ $dark-stakes-banned-background: #3e314c;
 .dark-theme-applied {
 	color: #fff;
 
-	.walletconnect-modal__footer {
+	.walletconnect-modal__base {
 		color: black
 	}
-	
+
 	// navbar
 	.navbar.navbar-primary {
 		background-color: $dark-light-bg;
