@@ -48,6 +48,12 @@ RUN if [ "$COIN" != "" ]; then \
 # Run forderground build and phoenix digest
 RUN mix compile
 
+ARG SOCKET_ROOT
+ARG NETWORK_PATH
+ARG CHAIN_ID
+ARG JSON_RPC
+ARG SUBNETWORK
+ARG COIN_NAME
 RUN npm install npm@latest
 
 # Add blockscout npm deps
