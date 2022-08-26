@@ -13,7 +13,7 @@ defmodule Explorer.Market.MarketHistoryCache do
   @last_update_key :last_update
   @history_key :history
   # 6 hours
-  @recent_days 30
+  @recent_days 15
 
   def fetch do
     if cache_expired?() do
