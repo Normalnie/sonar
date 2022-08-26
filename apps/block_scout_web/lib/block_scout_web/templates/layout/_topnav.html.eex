@@ -86,7 +86,7 @@
           <%#            to: bridged_tokens_path(@conn, :show, :bsc)
           <%#          ) %>
           <%#      <%= link(
-          <%#            gettext("BCH"),
+          <%#            gettext("DOGE"),
           <%#            class: "dropdown-item #{tab_status("accounts", @conn.request_path)}",
           <%#            to: address_path(@conn, :index)
           <%#          ) %>
@@ -107,7 +107,7 @@
           <%#            to: tokens_path(@conn, :index)
           <%#          ) %>
           <%#      <%= link(
-          <%#            gettext("BCH"),
+          <%#            gettext("DOGE"),
           <%#            class: "dropdown-item #{tab_status("accounts", @conn.request_path)}",
           <%#            to: address_path(@conn, :index)
           <%#          ) %>
@@ -179,7 +179,7 @@
           <div class="dropdown-menu" aria-labeledby="navbarTransactionsDropdown">
             <a class="dropdown-item " href="/graphiql">GraphQL</a>
             <a class="dropdown-item " href="/api-docs">RPC</a>
-            <a class="dropdown-item " href="/eth-rpc-api-docs">smartBCH RPC</a>
+            <a class="dropdown-item " href="/eth-rpc-api-docs">Dogechain RPC</a>
           </div>
         </li>
         <li class="nav-item dropdown">

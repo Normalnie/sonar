@@ -10,8 +10,12 @@ defmodule BlockScoutWeb.LayoutView do
   @issue_url "https://github.com/mistswapdex/sonar/issues/new"
   @default_other_networks [
     %{
-      title: "SmartBCH‎",
-      url: "http://94.237.53.24/"
+      title: "SmartBCH",
+      url: "http://sonar.cash/"
+    },
+    %{
+      title: "Dogechain",
+      url: "http://dogechain.sonar.cash/"
     },
     %{
       title: "Sokol",

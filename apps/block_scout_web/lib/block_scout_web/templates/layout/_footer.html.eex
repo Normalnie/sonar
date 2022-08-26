@@ -19,7 +19,7 @@
           </div>
         </div>
 
-        <p class="footer-info-text"><%= gettext("sonar.cash is a smartBCH EVM block explorer based on Blockscout") %></p>
+        <p class="footer-info-text"><%= gettext("sonar.cash is a Dogechain EVM block explorer based on Blockscout") %></p>
         <div class="footer-social-icons">
           <a href="https://github.com/mistswapdex/sonar" rel="noreferrer" target="_blank" class="footer-social-icon" title='<%= gettext("Github") %>'>
             <div class="footer-social-icon-container fontawesome-icon github"></div>

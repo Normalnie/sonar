@@ -60,11 +60,7 @@ defmodule Explorer.ExchangeRates.Source.CoinGecko do
         name: json_data["name"],
         symbol: String.upcase(json_data["symbol"]),
         usd_value: current_price,
-        volume_24h_usd: to_decimal(total_volume_data_usd),
-        tvl: get_tvl(),
-        locked_bch: get_locked_bch(),
-        burned_bch: get_burned_bch(),
-        burned_usd: get_burned_usd(current_price)
+        volume_24h_usd: to_decimal(total_volume_data_usd)
       }
     ]
   end
@@ -133,7 +129,7 @@ defmodule Explorer.ExchangeRates.Source.CoinGecko do
     case Chain.Hash.Address.cast(input) do
       {:ok, _} ->
         address_hash_str = input
-        "#{base_url()}/coins/smartbch/contract/#{address_hash_str}"
+        "#{base_url()}/coins/dogechain/contract/#{address_hash_str}"
 
       _ ->
         symbol = input
@@ -210,51 +206,6 @@ defmodule Explorer.ExchangeRates.Source.CoinGecko do
       resp ->
         resp
     end
-  end
-
-  defp get_locked_bch() do
-    {:ok, hash} = Chain.string_to_address_hash("0x8c4F85ec71C966e45A6F4291f5271f8114a7Ba15")
-
-    case Address |> where(hash: ^hash) |> Repo.one do
-      nil -> Decimal.new("0")
-      address ->
-        balance = Decimal.div(address.fetched_coin_balance.value, 1000000000000000000)
-        Decimal.sub(21000000, balance)
-    end
-end
-
-
-  defp get_burned_usd(usd_value) do
-    {:ok, hash} = Chain.string_to_address_hash("0x0000000000000000000000626c61636b686f6c65")
-
-    case Address |> where(hash: ^hash) |> Repo.one do
-      nil -> Decimal.new("0")
-      address ->
-        balance = Decimal.div(address.fetched_coin_balance.value, 1000000000000000000)
-
-        burned_usd = Decimal.mult(usd_value, balance)
-        Decimal.round(burned_usd,2)
-    end
-  end
-
-  defp get_burned_bch() do
-    {:ok, hash} = Chain.string_to_address_hash("0x0000000000000000000000626c61636b686f6c65")
-
-    case Address |> where(hash: ^hash) |> Repo.one do
-      nil -> Decimal.new("0")
-      address ->
-        balance = Decimal.div(address.fetched_coin_balance.value, 1000000000000000000)
-        balance
-    end
-  end
-
-  defp get_tvl() do
-    url = "https://api.llama.fi/simpleChainDataset/smartbch?pool2=true&staking=true&borrowed=true&doublecounted=true"
-    response = HTTPoison.get!(url, [], [timeout: 60000, recv_timeout: 60000, follow_redirect: true])
-    strings = String.split(response.body, "\n")
-    string = Enum.at(strings, 1)
-    tvls = String.split(string, ",")
-    to_decimal(List.last(tvls, "0"))
   end
 
   @spec config(atom()) :: term

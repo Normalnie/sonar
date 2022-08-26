@@ -16,10 +16,6 @@ defmodule Explorer.ExchangeRates.Token do
    * `:symbol` - Trading symbol used to represent a currency
    * `:usd_value` - The USD value of the currency
    * `:volume_24h_usd` - The volume from the last 24 hours in USD
-   * `:tvl` - asdf
-   * `locked_bch` - asdf
-   * `burned_bch` - asdf
-   * `burned_usd` - asdf
   """
   @type t :: %__MODULE__{
           available_supply: Decimal.t(),
@@ -31,15 +27,11 @@ defmodule Explorer.ExchangeRates.Token do
           name: String.t(),
           symbol: String.t(),
           usd_value: Decimal.t(),
-          volume_24h_usd: Decimal.t(),
-          tvl: Decimal.t(),
-          locked_bch: Decimal.t(),
-          burned_bch: Decimal.t(),
-          burned_usd: Decimal.t()
+          volume_24h_usd: Decimal.t()
         }
 
   @enforce_keys ~w(available_supply total_supply btc_value id last_updated market_cap_usd name symbol usd_value volume_24h_usd )a
-  defstruct ~w(available_supply total_supply btc_value id last_updated market_cap_usd name symbol usd_value volume_24h_usd tvl locked_bch burned_bch burned_usd)a
+  defstruct ~w(available_supply total_supply btc_value id last_updated market_cap_usd name symbol usd_value volume_24h_usd)a
 
   def null,
     do: %__MODULE__{
@@ -52,11 +44,7 @@ defmodule Explorer.ExchangeRates.Token do
       volume_24h_usd: nil,
       market_cap_usd: nil,
       btc_value: nil,
-      last_updated: nil,
-      tvl: nil,
-      locked_bch: nil,
-      burned_bch: nil,
-      burned_usd: nil
+      last_updated: nil
     }
 
   def null?(token), do: token == null()
@@ -71,20 +59,16 @@ defmodule Explorer.ExchangeRates.Token do
         volume_24h_usd: volume_24h_usd,
         market_cap_usd: market_cap_usd,
         btc_value: btc_value,
-        last_updated: last_updated,
-        tvl: tvl,
-        locked_bch: locked_bch,
-        burned_bch: burned_bch,
-        burned_usd: burned_usd
+        last_updated: last_updated
       }) do
     # symbol is first because it is the key used for lookup in `Explorer.ExchangeRates`'s ETS table
     {symbol, id, name, available_supply, total_supply, usd_value, volume_24h_usd, market_cap_usd, btc_value,
-     last_updated, tvl, locked_bch, burned_bch, burned_usd}
+     last_updated}
   end
 
   def from_tuple(
         {symbol, id, name, available_supply, total_supply, usd_value, volume_24h_usd, market_cap_usd, btc_value,
-         last_updated, tvl, locked_bch, burned_bch, burned_usd}
+         last_updated}
       ) do
     %__MODULE__{
       symbol: symbol,
@@ -96,11 +80,7 @@ defmodule Explorer.ExchangeRates.Token do
       volume_24h_usd: volume_24h_usd,
       market_cap_usd: market_cap_usd,
       btc_value: btc_value,
-      last_updated: last_updated,
-      tvl: tvl,
-      locked_bch: locked_bch,
-      burned_bch: burned_bch,
-      burned_usd: burned_usd
+      last_updated: last_updated
     }
   end
 end

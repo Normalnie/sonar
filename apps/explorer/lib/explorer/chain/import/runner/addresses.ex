@@ -94,6 +94,7 @@ defmodule Explorer.Chain.Import.Runner.Addresses do
         end)
       end)
       |> Enum.sort_by(& &1.hash)
+      |> Enum.dedup_by(& &1.hash)
 
     Import.insert_changes_list(
       repo,
