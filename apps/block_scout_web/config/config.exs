@@ -141,7 +141,7 @@ config :block_scout_web,
 
 config :block_scout_web, BlockScoutWeb.Chain.TransactionHistoryChartController,
   # days
-  history_size: 30
+  history_size: 15
 
 config :block_scout_web, BlockScoutWeb.Chain.Address.CoinBalance,
   # days
