@@ -1,8 +1,9 @@
 defmodule BlockScoutWeb.API.RPC.ContractControllerTest do
   use BlockScoutWeb.ConnCase
   alias Explorer.Chain.SmartContract
-  alias Explorer.{Chain, Factory}
-
+  alias Explorer.{Chain, Factory, Repo}
+  alias Explorer.Chain.SmartContract.VerificationStatus
+  require Logger
   import Mox
 
   describe "listcontracts" do
@@ -622,6 +623,41 @@ defmodule BlockScoutWeb.API.RPC.ContractControllerTest do
   end
 
   describe "verify" do
+    test "verify with standard json input", %{conn: conn} do
+      contract_code_info = Factory.contract_code_info_standard_json_input()
+      contract_address = insert(:contract_address, contract_code: contract_code_info.bytecode)
+
+      :transaction
+      |> insert(created_contract_address_hash: contract_address.hash, input: contract_code_info.tx_input)
+      |> with_block(status: :ok)
+
+      Logger.debug("#{inspect(to_string(contract_address.hash))}")
+
+      params = %{
+        "module" => "contract",
+        "action" => "verifysourcecode",
+        "codeformat" => "solidity-standard-json-input",
+        "contractaddress" => to_string(contract_address.hash),
+        "contractname" => contract_code_info.name,
+        "compilerversion" => contract_code_info.version,
+        "sourceCode" => Jason.encode!(contract_code_info.solcInput),
+        "autodetectConstructorArguments" => true
+      }
+
+      assert response =
+               conn
+               |> post("/api", params)
+               |> json_response(200)
+
+      :timer.sleep(15000)
+
+      assert response["message"] =~ "OK"
+      assert response["status"] == "1"
+      assert Map.has_key?(response, "result")
+      uid = response["result"]
+      assert 1 = Repo.get(VerificationStatus, uid).status
+    end
+
     test "verify known on sourcify repo contract", %{conn: conn} do
       response = verify(conn)
 

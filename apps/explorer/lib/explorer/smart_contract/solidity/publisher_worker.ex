@@ -31,7 +31,6 @@ defmodule Explorer.SmartContract.Solidity.PublisherWorker do
         VerificationStatus.update_status(uid, :pass)
 
       {:error, changeset} ->
-        Logger.debug("Error verifying contract: #{inspect(changeset)}", fetcher: :api)
         VerificationStatus.update_status(uid, :fail)
     end
   end
