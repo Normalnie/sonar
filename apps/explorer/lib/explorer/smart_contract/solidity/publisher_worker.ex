@@ -8,6 +8,7 @@ defmodule Explorer.SmartContract.Solidity.PublisherWorker do
   alias Explorer.Chain.Events.Publisher, as: EventsPublisher
   alias Explorer.Chain.SmartContract.VerificationStatus
   alias Explorer.SmartContract.Solidity.Publisher
+  require Logger
 
   def perform({address_hash, params, external_libraries, conn}) do
     result =
@@ -29,7 +30,8 @@ defmodule Explorer.SmartContract.Solidity.PublisherWorker do
       {:ok, _contract} ->
         VerificationStatus.update_status(uid, :pass)
 
-      {:error, _changeset} ->
+      {:error, changeset} ->
+        Logger.debug("Error verifying contract: #{inspect(changeset)}", fetcher: :api)
         VerificationStatus.update_status(uid, :fail)
     end
   end
