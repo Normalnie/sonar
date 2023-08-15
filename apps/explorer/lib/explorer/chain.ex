@@ -7227,7 +7227,8 @@ defmodule Explorer.Chain do
 
     case chain_name do
       nil -> nil
-      "smartbch" -> "https://raw.githubusercontent.com/mistswapdex/assets/master/blockchains/#{chain_name}/assets/#{address_hash}/logo.png"
+      # "smartbch" -> "https://raw.githubusercontent.com/mistswapdex/assets/master/blockchains/#{chain_name}/assets/#{address_hash}/logo.png"
+      "smartbch" -> "https://asset.benswap.cash/tokens/#{address_hash}.png"
       _ -> "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/#{chain_name}/assets/#{address_hash}/logo.png"
     end
   end
