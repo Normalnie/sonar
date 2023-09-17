@@ -11,7 +11,7 @@ defmodule BlockScoutWeb.CSPHeader do
   def call(conn, _opts) do
     Controller.put_secure_browser_headers(conn, %{
       "content-security-policy" => "\
-        connect-src 'self' #{websocket_endpoints(conn)} wss://*.bridge.walletconnect.org/ https://request-global.czilladx.com/ https://raw.githubusercontent.com/trustwallet/assets/ https://registry.walletconnect.org/data/wallets.json https://registry.walletconnect.com/api/v2/wallets https://*.poa.network https://matomo.mistswap.fi http://matomo.mistswap.fi https://global.uat.cash https://testnet.sonar.cash https://testnet.sonar.cash:9545;\
+        connect-src 'self' #{websocket_endpoints(conn)} wss://*.bridge.walletconnect.org/ https://request-global.czilladx.com/ https://raw.githubusercontent.com/trustwallet/assets/ https://registry.walletconnect.org/data/wallets.json https://registry.walletconnect.com/api/v2/wallets https://*.poa.network https://matomo.mistswap.fi http://matomo.mistswap.fi https://global.uat.cash https://testnet.smartscout.cash https://testnet.smartscout.cash:9545;\
         default-src 'self';\
         script-src 'self' 'unsafe-inline' 'unsafe-eval' https://coinzillatag.com https://www.google.com https://www.gstatic.com https://matomo.mistswap.fi;\
         style-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com;\

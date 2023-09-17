@@ -19,7 +19,7 @@
           </div>
         </div>
 
-        <p class="footer-info-text"><%= gettext("sonar.cash is a smartBCH EVM block explorer based on Blockscout") %></p>
+        <p class="footer-info-text"><%= gettext("smartscout.cash is a smartBCH EVM block explorer based on Blockscout") %></p>
         <div class="footer-social-icons">
           <a href="https://github.com/mistswapdex/sonar" rel="noreferrer" target="_blank" class="footer-social-icon" title='<%= gettext("Github") %>'>
             <div class="footer-social-icon-container fontawesome-icon github"></div>
@@ -37,11 +37,11 @@
       </div>
 
       <div class="col-xs-12 col-md-4 col-lg-<%= col_size %> footer-list">
-        <h3>sonar.cash</h3>
+        <h3>smartscout.cash</h3>
         <ul>
           <li><a href="<%= issue_link(@conn) %>" rel="noreferrer" class="footer-link" target="_blank"><%= gettext("Submit an Issue") %></a></li>
           <li><a href="https://github.com/mistswapdex/sonar" rel="noreferrer" class="footer-link"><%= gettext("Contribute") %></a></li>
-          <li><a href="https://discord.com/channels/892662024469884939/982677728673288192" rel="noreferrer" class="footer-link"><%= gettext("Chat (#sonar)") %></a></li>
+          <li><a href="https://t.me/smartbch_community" rel="noreferrer" class="footer-link"><%= gettext("Chat") %></a></li>
           <%= if System.get_env("COIN_NAME") && System.get_env("NETWORK_PATH") && System.get_env("SUBNETWORK") && System.get_env("JSON_RPC") && System.get_env("CHAIN_ID") do %>
             <li><a class="footer-link js-btn-add-chain-to-mm btn-add-chain-to-mm in-footer" style="cursor: pointer;"><%= gettext("Add") <> " #{System.get_env("SUBNETWORK")}" %></a></li>
           <% end %>
